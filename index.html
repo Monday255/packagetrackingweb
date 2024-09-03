@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Package Information Input</title>
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 50px;
+            padding: 20px;
+            background-color: #f2f2f2;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            color: #333;
+        }
+        input[type="text"], input[type="submit"] {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            box-sizing: border-box;
+        }
+        input[type="submit"] {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <h1>Enter Package Information</h1>
+    <form id="packageForm">
+        <label for="name">Name:</label><br>
+        <input type="text" id="name" name="name" required><br>
+        <label for="trackingNumber">Tracking Number:</label><br>
+        <input type="text" id="trackingNumber" name="trackingNumber" required><br>
+        <label for="phoneNumber">Phone Number:</label><br>
+        <input type="text" id="phoneNumber" name="phoneNumber" required><br><br>
+        <input type="submit" value="Submit">
+    </form>
+
+    <script type="module">
+      // Import the functions you need from the SDKs you need
+      import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
+      import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+
+      // Your web app's Firebase configuration
+      const firebaseConfig = {
+        apiKey: "AIzaSyAGgjERI-h1028fif9ExruhxocfiHP1t4k",
+        authDomain: "packagetrackingapp-ab1b3.firebaseapp.com",
+        projectId: "packagetrackingapp-ab1b3",
+        storageBucket: "packagetrackingapp-ab1b3.appspot.com",
+        messagingSenderId: "232673792685",
+        appId: "1:232673792685:web:068a5201dc65f38e96ec24",
+        measurementId: "G-KBHTF8F94J"
+      };
+
+      // Initialize Firebase
+      const app = initializeApp(firebaseConfig);
+      const db = getFirestore(app);
+
+      // Handle form submission
+      document.getElementById('packageForm').addEventListener('submit', async function(event) {
+        event.preventDefault();
+
+        const name = document.getElementById('name').value;
+        const trackingNumber = document.getElementById('trackingNumber').value;
+        const phoneNumber = document.getElementById('phoneNumber').value;
+
+        try {
+          // Add a new document with a generated ID
+          await addDoc(collection(db, "packages"), {
+            name: name,
+            trackingNumber: trackingNumber,
+            phoneNumber: phoneNumber
+          });
+          alert("Data submitted successfully!");
+          document.getElementById('packageForm').reset();
+        } catch (error) {
+          console.error("Error submitting data: ", error);
+        }
+      });
+    </script>
+</body>
+</html>
