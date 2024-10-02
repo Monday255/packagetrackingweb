@@ -6,7 +6,7 @@
     <title>Package Information Input</title>
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-database.js"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -38,22 +38,30 @@
     <form id="packageForm">
         <label for="name">Name:</label><br>
         <input type="text" id="name" name="name" required><br>
+        <label for="telegramId">Telegram ID:</label><br>
+        <input type="text" id="telegramId" name="telegramId" required><br>
         <label for="trackingNumber">Tracking Number:</label><br>
-        <input type="text" id="trackingNumber" name="trackingNumber" required><br>
-        <label for="phoneNumber">Phone Number:</label><br>
-        <input type="text" id="phoneNumber" name="phoneNumber" required><br><br>
+        <input type="text" id="trackingNumber" name="trackingNumber" required><br><br>
         <input type="submit" value="Submit">
+    </form>
+
+    <h1>Notify Package Arrival</h1>
+    <form id="trackingForm">
+        <label for="trackingNumberNotify">Tracking Number:</label><br>
+        <input type="text" id="trackingNumberNotify" name="trackingNumberNotify" required><br><br>
+        <input type="submit" value="Notify">
     </form>
 
     <script type="module">
       // Import the functions you need from the SDKs you need
       import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
-      import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+      import { getDatabase, ref, set, get, child } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-database.js";
 
       // Your web app's Firebase configuration
       const firebaseConfig = {
         apiKey: "AIzaSyAGgjERI-h1028fif9ExruhxocfiHP1t4k",
         authDomain: "packagetrackingapp-ab1b3.firebaseapp.com",
+        databaseURL: "https://packagetrackingapp-ab1b3-default-rtdb.asia-southeast1.firebasedatabase.app",
         projectId: "packagetrackingapp-ab1b3",
         storageBucket: "packagetrackingapp-ab1b3.appspot.com",
         messagingSenderId: "232673792685",
@@ -63,22 +71,23 @@
 
       // Initialize Firebase
       const app = initializeApp(firebaseConfig);
-      const db = getFirestore(app);
+      const database = getDatabase(app);
 
-      // Handle form submission
+      // Handle package information form submission
       document.getElementById('packageForm').addEventListener('submit', async function(event) {
         event.preventDefault();
 
         const name = document.getElementById('name').value;
+        const telegramId = document.getElementById('telegramId').value;
         const trackingNumber = document.getElementById('trackingNumber').value;
-        const phoneNumber = document.getElementById('phoneNumber').value;
 
         try {
-          // Add a new document with a generated ID
-          await addDoc(collection(db, "packages"), {
+          // Write data to Realtime Database
+          const packageId = new Date().getTime(); // Generate a unique ID based on timestamp
+          await set(ref(database, 'packages/' + packageId), {
             name: name,
-            trackingNumber: trackingNumber,
-            phoneNumber: phoneNumber
+            telegramId: telegramId,
+            trackingNumber: trackingNumber
           });
           alert("Data submitted successfully!");
           document.getElementById('packageForm').reset();
@@ -86,6 +95,67 @@
           console.error("Error submitting data: ", error);
         }
       });
+
+      // Handle package arrival notification
+      document.getElementById('trackingForm').addEventListener('submit', async function(event) {
+        event.preventDefault();
+
+        const trackingNumberNotify = document.getElementById('trackingNumberNotify').value;
+
+        try {
+          // Check for matching tracking number in Firebase
+          const dbRef = ref(database);
+          const snapshot = await get(child(dbRef, 'packages'));
+
+          if (snapshot.exists()) {
+            let packageFound = false;
+            snapshot.forEach((childSnapshot) => {
+              const packageData = childSnapshot.val();
+              if (packageData.trackingNumber === trackingNumberNotify) {
+                packageFound = true;
+                const name = packageData.name;
+                const telegramId = packageData.telegramId;
+
+                // Send Telegram message
+                sendTelegramNotification(name, telegramId);
+              }
+            });
+
+            if (!packageFound) {
+              alert("Tracking number not found!");
+            }
+
+          } else {
+            alert("No data available.");
+          }
+
+        } catch (error) {
+          console.error("Error reading data: ", error);
+        }
+      });
+
+      // Function to send Telegram notification
+      function sendTelegramNotification(name, telegramId) {
+        const botToken = "7198899367:AAEw-QvpreTdyM_5jUL_yicX4Y2I3HjoS_4";  // Telegram bot token
+        const message = `Hello ${name}, your package has arrived. Please pick it up!`;
+        const encodedMessage = encodeURIComponent(message);
+        const telegramURL = `https://api.telegram.org/bot${botToken}/sendMessage?chat_id=${telegramId}&text=${encodedMessage}`;
+
+        fetch(telegramURL)
+          .then(response => response.json())
+          .then(data => {
+            console.log("Telegram notification response: ", data);
+            if (data.ok) {
+              alert("Notification sent successfully to " + name + "!");
+            } else {
+              alert("Error sending notification: " + data.description);
+            }
+          })
+          .catch(error => {
+            console.error("Error sending Telegram notification:", error);
+            alert("Error sending notification.");
+          });
+      }
     </script>
 </body>
 </html>
